@@ -2,23 +2,48 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/anthonyminyungi/learngo/mydict"
+	"net/http"
 )
 
+type requestResult struct {
+	url    string
+	status string
+}
+
 func main() {
-	dictionary := mydict.Dictionary{}
-	baseWord := "hello"
-	dictionary.Add(baseWord, "First")
-	found, _ := dictionary.Search(baseWord)
-	fmt.Println(found)
-	err := dictionary.Delete(baseWord)
-	if err != nil {
-		fmt.Println(err)
+	ch := make(chan requestResult)
+	results := make(map[string]string)
+
+	urls := []string{
+		"https://www.google.com",
+		"https://www.amazon.com",
+		"https://www.airbnb.com",
+		"https://www.facebook.com",
+		"https://www.instagram.com",
+		"https://www.reddit.com",
+		"https://soundcloud.com",
+		"https://academy.nomadcoders.co",
 	}
-	word, err2 := dictionary.Search(baseWord)
-	if err2 != nil {
-		fmt.Println(err2)
+
+	for _, url := range urls {
+		go hitURL(url, ch)
 	}
-	fmt.Println(word)
+
+	for i := 0; i < len(urls); i++ {
+		result := <-ch
+		results[result.url] = result.status
+	}
+
+	for url, status := range results {
+		fmt.Println(url, status)
+	}
+}
+
+func hitURL(url string, ch chan<- requestResult) {
+	resp, err := http.Get(url)
+	status := "OK"
+	if err != nil || resp.StatusCode >= 400 {
+		status = "FAILED"
+	}
+	ch <- requestResult{url: url, status: status}
 }
